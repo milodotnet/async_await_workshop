@@ -13,9 +13,12 @@ namespace AsyncStuff
         [Test]
         public void MethodReturnsTaskOfTWithoutWait()
         {
+            // what is the problem with this (only relevant with certain sync contexts)
             const string expected = "foo";
-            var actual = Methods.WaitASecondAndReturnAValue(expected);
-            Assert.AreEqual(expected, actual.Result);
+            var actual = Methods
+                            .WaitASecondAndReturnAValue(expected)
+                            .Result;
+            Assert.AreEqual(expected, actual);
         }     
     }
 }
