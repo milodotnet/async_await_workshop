@@ -17,13 +17,4 @@ namespace AsyncStuff
             return Task.Factory.StartNew(() => MutableGlobalState.State = 5);
         }
     }
-
-    public class AsyncMethods
-    {
-        public static async Task<string> WaitASecondAndReturnAValueAsync(string valueToReturn)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            return valueToReturn;
-        }    
-    }
 }

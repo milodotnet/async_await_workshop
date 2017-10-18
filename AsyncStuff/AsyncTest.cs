@@ -43,7 +43,15 @@ namespace AsyncStuff
             
             Assert.AreEqual(expected, actual);
         }
-         
-        
+
+        [Test]
+        public async Task AsyncMethodMutatesGlobalStateWithoutAwait()
+        {
+            const int expected = 6;
+            
+            AsyncMethods.MutateGlobalStateAfterASecondAsync();
+            
+            Assert.AreEqual(expected, MutableGlobalState.State);
+        }
     }
 }
