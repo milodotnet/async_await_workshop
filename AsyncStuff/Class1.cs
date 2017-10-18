@@ -13,7 +13,7 @@ namespace AsyncStuff
         [Test]
         public void MethodReturnsTaskOfTWithoutWait()
         {
-            var expected = "foo";
+            const string expected = "foo";
             var actual = Methods.WaitASecondAndReturnAValue(expected);
             Assert.AreEqual(expected, actual.Result);
         }     
