@@ -3,7 +3,7 @@ namespace AsyncStuff
     using System;
     using System.Threading.Tasks;
 
-    public class Methods
+    public class SyncMethods
     {
         public static Task<string> WaitASecondAndReturnAValue(string valueToReturn)
         {
@@ -16,5 +16,14 @@ namespace AsyncStuff
             Task.Delay(TimeSpan.FromSeconds(1)).Wait();            
             return Task.Factory.StartNew(() => MutableGlobalState.State = 5);
         }
+    }
+
+    public class AsyncMethods
+    {
+        public static async Task<string> WaitASecondAndReturnAValueAsync(string valueToReturn)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return valueToReturn;
+        }    
     }
 }

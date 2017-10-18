@@ -7,11 +7,6 @@ using NUnit.Framework;
 
 namespace AsyncStuff
 {
-    public class MutableGlobalState
-    {
-        public static int State;
-    }
-    
     [TestFixture]
     public class AsyncTest
     {
@@ -21,7 +16,7 @@ namespace AsyncStuff
             // what is the problem with this (only relevant with certain sync contexts)
             const string expected = "foo";
             
-            var actual = Methods
+            var actual = SyncMethods
                             .WaitASecondAndReturnAValue(expected)
                             .Result;
             
@@ -33,9 +28,22 @@ namespace AsyncStuff
         {
             const int expected = 5;
 
-            Methods.MutateGlobalState();
+            SyncMethods.MutateGlobalState();
             
             Assert.AreEqual(expected, MutableGlobalState.State);
         }
+        
+        [Test]
+        public async Task AsyncMethodReturnsTaskOfT()
+        {             
+            const string expected = "foo";
+            
+            var actual = await AsyncMethods
+                .WaitASecondAndReturnAValueAsync(expected);
+            
+            Assert.AreEqual(expected, actual);
+        }
+         
+        
     }
 }
