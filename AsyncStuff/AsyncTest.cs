@@ -49,7 +49,17 @@ namespace AsyncStuff
         {
             const int expected = 6;
             
-            AsyncMethods.MutateGlobalStateAfterASecondAsync();
+            AsyncMethods.MutateGlobalStateAfterASecondAsync(expected);
+            
+            Assert.AreEqual(expected, MutableGlobalState.State);
+        }
+        
+        [Test]
+        public async Task AsyncMethodMutatesGlobalStateWithAwait()
+        {
+            const int expected = 7;
+            
+            await AsyncMethods.MutateGlobalStateAfterASecondAsync(expected);
             
             Assert.AreEqual(expected, MutableGlobalState.State);
         }

@@ -11,10 +11,10 @@ namespace AsyncStuff
             return valueToReturn;
         }    
         
-        public static async Task MutateGlobalStateAfterASecondAsync()
+        public static async Task MutateGlobalStateAfterASecondAsync(int to)
         {
             await Task.Delay(TimeSpan.FromSeconds(1));            
-            MutableGlobalState.State = 6;
+            MutableGlobalState.State = to;
         }        
     }
 }
