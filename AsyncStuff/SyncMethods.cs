@@ -16,5 +16,11 @@ namespace AsyncStuff
             Task.Delay(TimeSpan.FromSeconds(1)).Wait();            
             return Task.Factory.StartNew(() => MutableGlobalState.State = 5);
         }
+
+        public static Task ThrowAnExceptionAfterOneSecond()
+        {
+            Task.Delay(TimeSpan.FromSeconds(1)).Wait();
+            return Task.Factory.StartNew(() => throw new Exception());
+        }
     }
 }

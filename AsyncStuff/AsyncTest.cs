@@ -63,5 +63,85 @@ namespace AsyncStuff
             
             Assert.AreEqual(expected, MutableGlobalState.State);
         }
+
+        [Test]
+        public void SyncExceptionHandlingWithoutAwait()
+        {
+            Exception exceptionThrown = null;
+            try
+            {
+                SyncMethods.ThrowAnExceptionAfterOneSecond();
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = ex;
+            }
+            Assert.IsNotNull(exceptionThrown);
+        }     
+        
+        [Test]
+        public async Task SyncExceptionHandlingWithAwait()
+        {
+            Exception exceptionThrown = null;
+            try
+            {
+                await SyncMethods.ThrowAnExceptionAfterOneSecond();
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = ex;
+            }
+            Assert.IsNotNull(exceptionThrown);
+        }
+
+        [Test]
+        public void AwaitedAsyncWrappedInNonAwaitedAction()
+        {
+            Exception exceptionThrown = null;
+            Action willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond();
+            try
+            {
+                willThrow();
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = ex;
+            }
+            Assert.IsNotNull(exceptionThrown);            
+        }
+        
+        [Test]
+        public async Task AwaitedAsyncWrappedInAwaitedAction()
+        {
+//            Exception exceptionThrown = null;
+//            Action willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond();
+//            try
+//            {
+//                await willThrow();
+//            }
+//            catch (Exception ex)
+//            {
+//                exceptionThrown = ex;
+//            }
+//            Assert.IsNotNull(exceptionThrown);   
+            Assert.Fail("This will not compile because void (returned by action) is not awaitable");
+        }
+
+        [Test]
+        public async Task AwaitedAsyncWrappedInNonAwaitedFuncOfTask()
+        {
+            Exception exceptionThrown = null;
+            Func<Task> willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond();
+            try
+            {
+                //awaitable because it's a func
+                await willThrow();
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = ex;
+            }
+            Assert.IsNotNull(exceptionThrown);                        
+        }
     }
 }
