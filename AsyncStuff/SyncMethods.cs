@@ -10,7 +10,15 @@ namespace AsyncStuff
             Task.Delay(TimeSpan.FromSeconds(1)).Wait();
             return Task.FromResult(valueToReturn);
         }
-
+        
+        public static Task<string> WaitASecondAndReturnAValueUsingTaskCompletionSource(string valueToReturn)
+        {
+            var tcs = new TaskCompletionSource<string>();
+            Task.Delay(TimeSpan.FromSeconds(1))
+                .ContinueWith(t => tcs.SetResult(valueToReturn));
+            
+            return tcs.Task;
+        }
         public static Task MutateGlobalState()
         {
             Task.Delay(TimeSpan.FromSeconds(1)).Wait();            

@@ -7,6 +7,9 @@ using NUnit.Framework;
 
 namespace AsyncStuff
 {
+    using System.Globalization;
+    using System.Runtime.Remoting.Messaging;
+
     [TestFixture]
     public class AsyncTest
     {
@@ -23,6 +26,19 @@ namespace AsyncStuff
             Assert.AreEqual(expected, actual);
         }
 
+        [Test]
+        public void MethodReturnsTaskOfTWithoutWaitUsingTaskCompletionSource()
+        {
+            // what is the problem with this (only relevant with certain sync contexts)
+            const string expected = "foo";
+            
+            var actual = SyncMethods
+                .WaitASecondAndReturnAValueUsingTaskCompletionSource(expected)
+                .Result;
+            
+            Assert.AreEqual(expected, actual);
+        }
+        
         [Test]
         public void MethodReturnsATaskOfTAndMutatesGlobalState()
         {
@@ -84,7 +100,7 @@ namespace AsyncStuff
         {
             Exception exceptionThrown = null;
             try
-            {
+            {                
                 await SyncMethods.ThrowAnExceptionAfterOneSecond();
             }
             catch (Exception ex)
@@ -92,6 +108,7 @@ namespace AsyncStuff
                 exceptionThrown = ex;
             }
             Assert.IsNotNull(exceptionThrown);
+            Assert.IsInstanceOf<AggregateException>(exceptionThrown);
         }
 
         [Test]
@@ -142,6 +159,60 @@ namespace AsyncStuff
                 exceptionThrown = ex;
             }
             Assert.IsNotNull(exceptionThrown);                        
+        }
+
+        [Test]
+        public async Task AwaitingAcrossALock()
+        {
+            //Luckily this won't compile
+//            lock (MutableGlobalState.Lease)
+//            {
+//                await AsyncMethods.MutateGlobalStateAfterASecondAsync(10);
+//            }
+            
+        }
+
+        [Test]
+        public async Task LosingMyException()
+        {
+            Exception exceptionThrown = null;
+            var delay = Task.Delay(TimeSpan.FromSeconds(0.5));
+            var errorProneTask = SyncMethods.ThrowAnExceptionAfterOneSecond();
+
+            try
+            {
+                var firstTaskToComplete = await Task.WhenAny(delay, errorProneTask);
+
+                Assert.AreEqual(delay, firstTaskToComplete);
+
+                //give the error prone task a chance to fail.
+                await Task.Delay(1);
+
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = ex;
+            }
+            Assert.IsNotNull(exceptionThrown);
+        }
+        
+        [Test]
+        public async Task FindingMyException()
+        {
+            Exception exceptionThrown = null;
+            var delay = Task.Delay(TimeSpan.FromSeconds(0.5));
+            var errorProneTask = SyncMethods
+                .ThrowAnExceptionAfterOneSecond()
+                .ContinueWith(task => exceptionThrown = task.Exception);
+
+            var firstTaskToComplete = await Task.WhenAny(delay, errorProneTask);
+    
+            Assert.AreEqual(delay, firstTaskToComplete);
+
+            //give the error prone task a chance to fail.
+            await Task.Delay(1);
+
+            Assert.IsNotNull(exceptionThrown);
         }
     }
 }
