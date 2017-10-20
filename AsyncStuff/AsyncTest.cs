@@ -9,6 +9,8 @@ namespace AsyncStuff
 {
     using System.Globalization;
     using System.Runtime.Remoting.Messaging;
+    using System.Threading;
+    using System.Windows.Forms;
 
     [TestFixture]
     public class AsyncTest
@@ -86,7 +88,7 @@ namespace AsyncStuff
             Exception exceptionThrown = null;
             try
             {
-                SyncMethods.ThrowAnExceptionAfterOneSecond();
+                SyncMethods.ThrowAnExceptionAfterOneSecond(1);
             }
             catch (Exception ex)
             {
@@ -101,7 +103,7 @@ namespace AsyncStuff
             Exception exceptionThrown = null;
             try
             {                
-                await SyncMethods.ThrowAnExceptionAfterOneSecond();
+                await SyncMethods.ThrowAnExceptionAfterOneSecond(1);
             }
             catch (Exception ex)
             {
@@ -115,7 +117,7 @@ namespace AsyncStuff
         public void AwaitedAsyncWrappedInNonAwaitedAction()
         {
             Exception exceptionThrown = null;
-            Action willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond();
+            Action willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond(1);
             try
             {
                 willThrow();
@@ -148,7 +150,7 @@ namespace AsyncStuff
         public async Task AwaitedAsyncWrappedInNonAwaitedFuncOfTask()
         {
             Exception exceptionThrown = null;
-            Func<Task> willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond();
+            Func<Task> willThrow = async () => await SyncMethods.ThrowAnExceptionAfterOneSecond(1);
             try
             {
                 //awaitable because it's a func
@@ -177,7 +179,7 @@ namespace AsyncStuff
         {
             Exception exceptionThrown = null;
             var delay = Task.Delay(TimeSpan.FromSeconds(0.5));
-            var errorProneTask = SyncMethods.ThrowAnExceptionAfterOneSecond();
+            var errorProneTask = SyncMethods.ThrowAnExceptionAfterOneSecond(1);
 
             try
             {
@@ -202,7 +204,7 @@ namespace AsyncStuff
             Exception exceptionThrown = null;
             var delay = Task.Delay(TimeSpan.FromSeconds(0.5));
             var errorProneTask = SyncMethods
-                .ThrowAnExceptionAfterOneSecond()
+                .ThrowAnExceptionAfterOneSecond(1)
                 .ContinueWith(task => exceptionThrown = task.Exception);
 
             var firstTaskToComplete = await Task.WhenAny(delay, errorProneTask);
@@ -213,6 +215,117 @@ namespace AsyncStuff
             await Task.Delay(1);
 
             Assert.IsNotNull(exceptionThrown);
+        }
+
+        [Test]
+        public async Task WhatHappensWhenTwoOperationsThrowAnExceptionAndUsingWhenAny()
+        {
+            Exception exceptionThrowByA = null;
+            Exception exceptionThrowByB = null;
+
+            var aWithExceptionHandler = AsyncMethods
+                                            .ThrowAnExceptionAfterNSecondAsync(1)
+                                            .ContinueWith(task => exceptionThrowByA = task.Exception);
+
+
+            var bWithExceptionHandler = AsyncMethods
+                                            .ThrowAnExceptionAfterNSecondAsync(2)
+                                            .ContinueWith(task =>  exceptionThrowByB = task.Exception);
+                                        
+            await Task.WhenAny
+                        (aWithExceptionHandler,
+                         bWithExceptionHandler);
+                            
+            Assert.IsNotNull(exceptionThrowByA, "a - exception is missing");
+            Assert.IsNotNull(exceptionThrowByB, "b - exception is missing");
+        }
+        
+        [Test]
+        public async Task WhatHappensWhenTwoOperationsThrowAnExceptionWhenAll()
+        {
+            Exception exceptionThrowByA = null;
+            Exception exceptionThrowByB = null;
+
+            var aWithExceptionHandler = AsyncMethods
+                .ThrowAnExceptionAfterNSecondAsync(1)
+                .ContinueWith(task => exceptionThrowByA = task.Exception);
+
+
+            var bWithExceptionHandler = AsyncMethods
+                .ThrowAnExceptionAfterNSecondAsync(2)
+                .ContinueWith(task =>  exceptionThrowByB = task.Exception);
+                                        
+            await Task.WhenAll
+                    (aWithExceptionHandler,
+                        bWithExceptionHandler);
+                            
+            Assert.IsNotNull(exceptionThrowByA, "a - exception is missing");
+            Assert.IsNotNull(exceptionThrowByB, "b - exception is missing");
+        }
+
+        [Test, Ignore("Unignore this when you want to observe a deadlock")]
+        public void WhatAboutDeadlocksWhenUsingResult()
+        {
+            var blockingSyncContext = new WindowsFormsSynchronizationContext();            
+            SynchronizationContext.SetSynchronizationContext(blockingSyncContext);                       
+            
+            // Result is invoked on the same thread as the blocking sync context
+            // Because the sync context blocked when calling the async method,
+            // The call to result is deadlocked as it's waiting for the original call
+            // to release the thread.
+            // A way to see this visually is to execute this from a GUI, it would become non responsive. 
+            var theValue = AsyncMethods
+                                .WaitASecondAndReturnAValueAsync("this is doomed to deadlock")
+                                .Result;            
+        }
+
+        [Test, Ignore("Unignore this when you want to observe a deadlock")]
+        public void SomeProblemWithGetAwaiterGetResult()
+        {
+            var blockingSyncContext = new WindowsFormsSynchronizationContext();            
+            SynchronizationContext.SetSynchronizationContext(blockingSyncContext);                       
+            var theValue = AsyncMethods
+                .WaitASecondAndReturnAValueAsync("this too is doomed")                            
+                .GetAwaiter()
+                .GetResult();            
+        }
+        
+        [Test]
+        public void HowDoIFixThisDeadLockByAllowingCompletionOnADifferentThread()
+        {
+            var blockingSyncContext = new WindowsFormsSynchronizationContext();            
+            SynchronizationContext.SetSynchronizationContext(blockingSyncContext);
+            Func<Task<string>> returnValueFunc = () => AsyncMethods
+                                                        .WaitASecondAndReturnAValueAsync("this works around it");
+            
+            //this now executes on a different thread
+            //and wont deadlock when calling result
+            var theValue = Task
+                            .Run(returnValueFunc) 
+                            .Result;
+            
+            Assert.AreEqual("this works around it", theValue);
+        }
+
+        [Test]
+        public void IGetBetterExceptionInformationWhenUsingGetAwaiterGetResult()
+        {
+
+            Assert.Throws<AggregateException>(() =>
+            {
+                var resultThatWillNeverBe = AsyncMethods
+                                              .ThrowAnExceptionAfterNSecondAsync(1)
+                                              .Result;
+            },"Using result gives you an aggregate exception and this is not as nice as...");
+
+            Assert.Throws<SuperSpecificException>(() =>
+            {
+                var resultThatWillNeverBe = AsyncMethods
+                                             .ThrowAnExceptionAfterNSecondAsync(1)
+                                             .GetAwaiter()
+                                             .GetResult();
+            },"Using get awaiter, and then get result, actually throws the original exception from the awaiter");
+            
         }
     }
 }
