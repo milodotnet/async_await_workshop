@@ -13,10 +13,16 @@ namespace AsyncStuff
         
         public static Task<string> WaitASecondAndReturnAValueUsingTaskCompletionSource(string valueToReturn)
         {
+            /*
+                A way to create a Task which is your puppet. You can make the Task complete at any point you like,
+                 and you can make it fault by giving it an exception at any point you like.
+    
+                Davies, Alex. Async in C# 5.0: Unleash the Power of Async (p. 35). O'Reilly Media. Kindle Edition.             
+            */
             var tcs = new TaskCompletionSource<string>();
             Task.Delay(TimeSpan.FromSeconds(1))
                 .ContinueWith(t => tcs.SetResult(valueToReturn));
-            
+           
             return tcs.Task;
         }
         public static Task MutateGlobalState()

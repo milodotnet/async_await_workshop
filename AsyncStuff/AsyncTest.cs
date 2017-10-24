@@ -1,45 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace AsyncStuff
 {
-    using System.Globalization;
-    using System.Runtime.Remoting.Messaging;
     using System.Threading;
     using System.Windows.Forms;
 
     [TestFixture]
     public class AsyncTest
     {
-        [Test]
-        public void MethodReturnsTaskOfTWithoutWait()
-        {
-            // what is the problem with this (only relevant with certain sync contexts)
-            const string expected = "foo";
-            
-            var actual = SyncMethods
-                            .WaitASecondAndReturnAValue(expected)
-                            .Result;
-            
-            Assert.AreEqual(expected, actual);
-        }
-
-        [Test]
-        public void MethodReturnsTaskOfTWithoutWaitUsingTaskCompletionSource()
-        {
-            // what is the problem with this (only relevant with certain sync contexts)
-            const string expected = "foo";
-            
-            var actual = SyncMethods
-                .WaitASecondAndReturnAValueUsingTaskCompletionSource(expected)
-                .Result;
-            
-            Assert.AreEqual(expected, actual);
-        }
         
         [Test]
         public void MethodReturnsATaskOfTAndMutatesGlobalState()
@@ -263,9 +233,22 @@ namespace AsyncStuff
             Assert.IsNotNull(exceptionThrowByA, "a - exception is missing");
             Assert.IsNotNull(exceptionThrowByB, "b - exception is missing");
         }
-
+        
+        [Test]
+        public void UsingResultLooksFineSoWhatsTheProblem()
+        {
+            // what is the problem with this (only relevant with certain sync contexts)
+            const string expected = "foo";
+            
+            var actual = SyncMethods
+                .WaitASecondAndReturnAValue(expected)
+                .Result;
+            
+            Assert.AreEqual(expected, actual);
+        }
+       
         [Test, Ignore("Unignore this when you want to observe a deadlock")]
-        public void WhatAboutDeadlocksWhenUsingResult()
+        public void ItCreatesADeadLockWhenCertainSyncContextsGetInvolved()
         {
             var blockingSyncContext = new WindowsFormsSynchronizationContext();            
             SynchronizationContext.SetSynchronizationContext(blockingSyncContext);                       
@@ -311,9 +294,11 @@ namespace AsyncStuff
         [Test]
         public void HowDoIFixThisDeadLockByUsingConfigureAwaitFalse()
         {            
+            var blockingSyncContext = new WindowsFormsSynchronizationContext();            
+            SynchronizationContext.SetSynchronizationContext(blockingSyncContext);
+         
             var theValue = AsyncMethods
-                .WaitASecondAndReturnAValueAsync("this works around it")
-                .ConfigureAwait(false)
+                .WaitASecondAndReturnAValueAsyncAwaitFalse("this works around it")                
                 .GetAwaiter()
                 .GetResult();
             
@@ -341,5 +326,19 @@ namespace AsyncStuff
             },"Using get awaiter, and then get result, actually throws the original exception from the awaiter");
             
         }
+        
+        [Test]
+        public void UsingAResultLooksFineWithTaskCompletionSource()
+        {
+            // what is the problem with this (only relevant with certain sync contexts)
+            const string expected = "foo";
+            
+            var actual = SyncMethods
+                .WaitASecondAndReturnAValueUsingTaskCompletionSource(expected)
+                .Result;
+            
+            Assert.AreEqual(expected, actual);
+        }
+        
     }
 }

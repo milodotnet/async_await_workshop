@@ -21,6 +21,12 @@ namespace AsyncStuff
             return valueToReturn;
         }    
         
+        public static async Task<string> WaitASecondAndReturnAValueAsyncAwaitFalse(string valueToReturn)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            return valueToReturn;
+        }
+        
         public static async Task MutateGlobalStateAfterASecondAsync(int to)
         {
             await Task.Delay(TimeSpan.FromSeconds(1));            
