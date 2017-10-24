@@ -195,7 +195,8 @@ namespace AsyncStuff
             {
                 exceptionThrown = ex;
             }
-            Assert.IsNotNull(exceptionThrown);
+            Assert.IsNotNull(exceptionThrown,   "Exception wont be set because my code "
+                                              + "on the calling thread left the try catch block");
         }
         
         [Test]
@@ -307,6 +308,19 @@ namespace AsyncStuff
             Assert.AreEqual("this works around it", theValue);
         }
 
+        [Test]
+        public void HowDoIFixThisDeadLockByUsingConfigureAwaitFalse()
+        {            
+            var theValue = AsyncMethods
+                .WaitASecondAndReturnAValueAsync("this works around it")
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+            
+            Assert.AreEqual("this works around it", theValue);
+        }
+
+        
         [Test]
         public void IGetBetterExceptionInformationWhenUsingGetAwaiterGetResult()
         {
